@@ -53,7 +53,21 @@ app.get('/api/message', async (req, res) => {
 
 app.get('/api/user/:name', async (req, res) => {
 	const name = req.params.name;
-	return res.json(await User.findOne({name}).populate('messages'));
+
+	const user = await User.aggregate([
+		{$match: {name}},
+		{
+			$project: {
+				messages: 1, name: 1, isGold: {
+					$gte: [{$size: "$messages"}, 5]
+				}
+			}
+		},
+	]);
+
+	await User.populate(user, {path: 'messages'});
+
+	res.json(user[0]);
 });
 
 mongoose.connect(url);
